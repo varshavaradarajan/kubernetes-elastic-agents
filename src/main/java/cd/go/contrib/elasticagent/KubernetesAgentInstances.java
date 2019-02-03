@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class KubernetesAgentInstances implements AgentInstances<KubernetesInstan
     }
 
     @Override
-    public KubernetesInstance create(CreateAgentRequest request, PluginSettings settings, PluginRequest pluginRequest) {
+    public KubernetesInstance create(CreateAgentRequest request, PluginSettings settings, PluginRequest pluginRequest) throws IOException {
         final Integer maxAllowedContainers = settings.getMaxPendingPods();
         synchronized (instances) {
             refreshAll(pluginRequest);
@@ -79,7 +80,7 @@ public class KubernetesAgentInstances implements AgentInstances<KubernetesInstan
         }
     }
 
-    private KubernetesInstance createKubernetesInstance(CreateAgentRequest request, PluginSettings settings, PluginRequest pluginRequest) {
+    private KubernetesInstance createKubernetesInstance(CreateAgentRequest request, PluginSettings settings, PluginRequest pluginRequest) throws IOException {
         JobIdentifier jobIdentifier = request.jobIdentifier();
         if (isAgentCreatedForJob(jobIdentifier.getJobId())) {
             LOG.warn(format("[Create Agent Request] Request for creating an agent for Job Identifier [{0}] has already been scheduled. Skipping current request.", jobIdentifier));
@@ -87,7 +88,7 @@ public class KubernetesAgentInstances implements AgentInstances<KubernetesInstan
         }
 
         KubernetesClient client = factory.client(settings);
-        KubernetesInstance instance = kubernetesInstanceFactory.create(request, settings, client, pluginRequest, isUsingPodYaml(request));
+        KubernetesInstance instance = kubernetesInstanceFactory.create(request, settings, client, pluginRequest);
         register(instance);
 
         return instance;
@@ -101,10 +102,6 @@ public class KubernetesAgentInstances implements AgentInstances<KubernetesInstan
         }
 
         return false;
-    }
-
-    private boolean isUsingPodYaml(CreateAgentRequest request) {
-        return Boolean.valueOf(request.properties().get(SPECIFIED_USING_POD_CONFIGURATION.getKey()));
     }
 
     @Override
